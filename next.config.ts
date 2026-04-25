@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const backend =
-  process.env.BACKEND_URL?.replace(/\/$/, "") || "http://localhost:5000";
+  process.env.BACKEND_URL?.replace(/\/$/, "") || "http://localhost:3006";
 
 const nextConfig: NextConfig = {
   images: { unoptimized: true },
