@@ -4,7 +4,7 @@ import useSWR from "swr";
 import Link from "next/link";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
-import { Plus, Edit2, Trash2, Eye, Star, ExternalLink } from "lucide-react";
+import { Plus, Edit2, Trash2, Star, ExternalLink } from "lucide-react";
 
 const fetcher = (url: string) => fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`, { credentials: "include" }).then(r => r.json());
 
@@ -29,7 +29,6 @@ interface Project {
   minPrice?: number;
   maxPrice?: number;
   status: string;
-  views: number;
   isFeatured: boolean;
   images?: string[];
 }
@@ -117,11 +116,6 @@ export default function ProjectsPage() {
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[p.status] || "bg-gray-100 text-gray-600"}`}>
                       {p.status}
                     </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                      <Eye size={13} />{p.views}
-                    </div>
                   </td>
                   <td className="px-4 py-4">
                     <button onClick={() => toggleFeatured(p.slug, p.isFeatured)}

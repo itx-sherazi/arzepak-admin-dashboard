@@ -45,6 +45,7 @@ export default function AddProjectPage() {
   const [units, setUnits] = useState<{ name: string; minPrice: string; maxPrice: string; minArea: string; maxArea: string; areaUnit: string; bedrooms: string; bathrooms: string }[]>([]);
 
   // Images
+  const [logo, setLogo] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [floorPlans, setFloorPlans] = useState<{ label: string; image: string }[]>([]);
   const [paymentPlans, setPaymentPlans] = useState<{ label: string; image: string }[]>([]);
@@ -108,7 +109,6 @@ export default function AddProjectPage() {
   };
 
   const submit = async () => {
-    if (!basic.title || !basic.city || !basic.address) return toast.error("Title, city and address are required");
     setLoading(true);
     try {
       await api.post("/admin/projects", {
@@ -141,7 +141,7 @@ export default function AddProjectPage() {
           bedrooms: u.bedrooms ? Number(u.bedrooms) : undefined,
           bathrooms: u.bathrooms ? Number(u.bathrooms) : undefined,
         })),
-        images, floorPlans, paymentPlans,
+        logo: logo || undefined, images, floorPlans, paymentPlans,
         amenities, features,
         updates: updates.map(u => ({ ...u, date: u.date || new Date() })),
       });
@@ -302,6 +302,32 @@ export default function AddProjectPage() {
         {step === 2 && (
           <div className="space-y-6">
             <h2 className="font-bold text-gray-800">Images & Documents</h2>
+
+            {/* Project Logo */}
+            <div>
+              <label className={lbl}>Project Logo (optional)</label>
+              {logo
+                ? <div className="relative w-24 h-24">
+                    {uploadingSlot === "logo" && (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/85">
+                        <Loader2 className="h-6 w-6 animate-spin text-green-600" />
+                      </div>
+                    )}
+                    <label className="block h-full w-full cursor-pointer">
+                      <img src={logo} alt="" className="w-full h-full object-contain rounded-xl border border-gray-200 bg-gray-50" />
+                      <input type="file" accept="image/*" className="hidden" disabled={uploadBusy}
+                        onChange={e => { const f = e.target.files; e.target.value = ""; uploadImages(f, urls => setLogo(urls[0]), { slot: "logo", replaceUrl: logo }); }} />
+                    </label>
+                    <button type="button" onClick={() => setLogo("")} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center z-[5]"><X size={10} /></button>
+                  </div>
+                : <label className={`inline-flex items-center gap-2 border-2 border-dashed border-gray-200 rounded-xl p-4 cursor-pointer hover:border-green-400 relative ${uploadBusy ? "opacity-50 pointer-events-none" : ""}`}>
+                    {uploadingSlot === "logo" && <Loader2 className="h-5 w-5 animate-spin text-green-600 absolute" />}
+                    <Upload size={16} className="text-gray-400" />
+                    <span className="text-sm text-gray-500">Upload logo</span>
+                    <input type="file" accept="image/*" className="hidden" disabled={uploadBusy}
+                      onChange={e => { uploadImages(e.target.files, urls => setLogo(urls[0]), { slot: "logo" }); e.target.value = ""; }} />
+                  </label>}
+            </div>
 
             {/* Project Images */}
             <div>
