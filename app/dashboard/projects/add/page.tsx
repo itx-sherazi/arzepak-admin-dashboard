@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 import { Plus, X, Upload, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
+const MapPicker = dynamic(() => import("@/components/MapPicker"), { ssr: false });
 
 const CITIES = ["Lahore","Karachi","Islamabad","Rawalpindi","Peshawar","Quetta","Multan","Faisalabad","Hyderabad","Sialkot","Gujranwala","Abbottabad"];
 const STATUSES = ["BOOKING_OPEN","UNDER_CONSTRUCTION","LAUNCHING_SOON","COMPLETED","SOLD_OUT","DRAFT"];
@@ -49,6 +51,7 @@ export default function AddProjectPage() {
   const [images, setImages] = useState<string[]>([]);
   const [floorPlans, setFloorPlans] = useState<{ label: string; image: string }[]>([]);
   const [paymentPlans, setPaymentPlans] = useState<{ label: string; image: string }[]>([]);
+  const [galleries, setGalleries] = useState<{ title: string; images: string[] }[]>([]);
 
   // Features
   const [amenities, setAmenities] = useState<string[]>([]);
@@ -142,6 +145,7 @@ export default function AddProjectPage() {
           bathrooms: u.bathrooms ? Number(u.bathrooms) : undefined,
         })),
         logo: logo || undefined, images, floorPlans, paymentPlans,
+        galleries: galleries.filter(g => g.title.trim()),
         amenities, features,
         updates: updates.map(u => ({ ...u, date: u.date || new Date() })),
       });
@@ -192,13 +196,13 @@ export default function AddProjectPage() {
               <div><label className={lbl}>Max Price (PKR)</label><input type="number" className={inp} value={basic.maxPrice} onChange={e => setB("maxPrice", e.target.value)} placeholder="317800000" /></div>
               <div><label className={lbl}>Total Units</label><input type="number" className={inp} value={basic.totalUnits} onChange={e => setB("totalUnits", e.target.value)} /></div>
               <div><label className={lbl}>Expected Completion</label><input className={inp} value={basic.completionDate} onChange={e => setB("completionDate", e.target.value)} placeholder="Q4 2026" /></div>
-              <div><label className={lbl}>Latitude</label><input type="number" step="any" className={inp} value={basic.latitude} onChange={e => setB("latitude", e.target.value)} placeholder="31.5204" /></div>
-              <div><label className={lbl}>Longitude</label><input type="number" step="any" className={inp} value={basic.longitude} onChange={e => setB("longitude", e.target.value)} placeholder="74.3587" /></div>
               <div className="sm:col-span-2">
-                <label className={lbl}>Map link (Google Maps)</label>
-                <input className={inp} value={basic.mapUrl} onChange={e => setB("mapUrl", e.target.value)}
-                  placeholder="https://www.google.com/maps/embed?pb=… or Share link from Google Maps" />
-                <p className="text-xs text-gray-400 mt-1.5">Use <strong>Embed a map</strong> (Share → Embed) for an interactive map on the site, or paste a normal Maps link to show “Open in Maps”.</p>
+                <label className={lbl}>Project Location (click map to set)</label>
+                <MapPicker
+                  lat={basic.latitude ? Number(basic.latitude) : undefined}
+                  lng={basic.longitude ? Number(basic.longitude) : undefined}
+                  onChange={(lat, lng) => { setB("latitude", String(lat)); setB("longitude", String(lng)); }}
+                />
               </div>
             </div>
 
@@ -234,6 +238,7 @@ export default function AddProjectPage() {
                 </div>
               ))}
             </div>
+            
 
             <div>
               <label className={lbl}>Offering (e.g. Flats, Shops)</label>
@@ -460,6 +465,76 @@ export default function AddProjectPage() {
                 className="flex items-center gap-1.5 text-green-600 text-sm font-semibold hover:underline">
                 <Plus size={14} /> Add Payment Plan
               </button>
+            </div>
+
+            {/* ── Galleries ── */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <label className={lbl}>Project Galleries</label>
+                  <p className="text-xs text-gray-400 -mt-1">Create named galleries e.g. Gym, Pool, Rooms</p>
+                </div>
+                <button type="button" onClick={() => setGalleries(g => [...g, { title: "", images: [] }])}
+                  className="flex items-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold">
+                  <Plus size={13} /> Add Gallery
+                </button>
+              </div>
+
+              {galleries.length === 0 && (
+                <div className="border-2 border-dashed border-gray-200 rounded-xl py-6 text-center text-sm text-gray-400">
+                  No galleries yet. Click &quot;Add Gallery&quot; to create one.
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {galleries.map((g, gi) => (
+                  <div key={gi} className="border border-gray-200 rounded-xl p-4 space-y-3 bg-gray-50/40">
+                    <div className="flex items-center gap-2">
+                      <input className={`${inp} flex-1`} placeholder="Gallery title e.g. Swimming Pool, Gym, Kids Area"
+                        value={g.title} onChange={e => setGalleries(prev => prev.map((x, idx) => idx === gi ? { ...x, title: e.target.value } : x))} />
+                      <button type="button" onClick={() => setGalleries(prev => prev.filter((_, idx) => idx !== gi))}
+                        className="text-red-400 hover:text-red-600 p-1"><X size={16} /></button>
+                    </div>
+
+                    {/* Images grid */}
+                    {g.images.length > 0 && (
+                      <div className="grid grid-cols-4 gap-2">
+                        {g.images.map((img, ii) => (
+                          <div key={ii} className="relative group aspect-square rounded-xl overflow-hidden border border-gray-100">
+                            {uploadingSlot === `gal-${gi}-${ii}` && (
+                              <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50">
+                                <Loader2 className="h-5 w-5 animate-spin text-white" />
+                              </div>
+                            )}
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                            <button type="button"
+                              onClick={() => setGalleries(prev => prev.map((x, idx) => idx === gi ? { ...x, images: x.images.filter((_, ii2) => ii2 !== ii) } : x))}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 z-10">
+                              <X size={10} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Upload button */}
+                    <label className={`flex items-center gap-2 border-2 border-dashed border-gray-200 rounded-xl p-3 cursor-pointer hover:border-green-400 transition-colors relative ${uploadBusy ? "opacity-50 pointer-events-none" : ""}`}>
+                      {uploadingSlot === `gal-${gi}` && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/80 z-10">
+                          <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+                        </div>
+                      )}
+                      <Upload size={15} className="text-gray-400" />
+                      <span className="text-sm text-gray-500">Upload images for this gallery</span>
+                      <input type="file" multiple accept="image/*" className="hidden" disabled={uploadBusy}
+                        onChange={e => {
+                          uploadImages(e.target.files, urls => setGalleries(prev => prev.map((x, idx) => idx === gi ? { ...x, images: [...x.images, ...urls] } : x)), { slot: `gal-${gi}` });
+                          e.target.value = "";
+                        }} />
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
