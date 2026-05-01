@@ -288,12 +288,16 @@ export default function EditProjectPage() {
               <div><label className={lbl}>Total Units</label><input type="number" className={inp} value={basic.totalUnits} onChange={e => setB("totalUnits", e.target.value)} /></div>
               <div><label className={lbl}>Expected Completion</label><input className={inp} value={basic.completionDate} onChange={e => setB("completionDate", e.target.value)} placeholder="Q4 2026" /></div>
               <div className="sm:col-span-2">
-                <label className={lbl}>Project Location (click map to set)</label>
+                <label className={lbl}>Project Location (click map to set exact pin)</label>
                 <MapPicker
                   lat={basic.latitude ? Number(basic.latitude) : undefined}
                   lng={basic.longitude ? Number(basic.longitude) : undefined}
                   onChange={(lat, lng) => { setB("latitude", String(lat)); setB("longitude", String(lng)); }}
                 />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={lbl}>Google Maps Embed URL / Link (Optional)</label>
+                <input className={inp} value={basic.mapUrl} onChange={e => setB("mapUrl", e.target.value)} placeholder='Paste full <iframe...> code or map URL' />
               </div>
             </div>
 
