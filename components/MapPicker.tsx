@@ -30,19 +30,30 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
   const DEFAULT_LNG = lng || 74.3587;
 
   useEffect(() => {
-    if (window.google?.maps) { initMap(); return; }
+    if (window.google?.maps?.Map) {
+      setLoaded(true);
+      return;
+    }
 
-    if (!document.getElementById("gmap-script")) {
-      window.initGoogleMap = () => { setLoaded(true); };
+    const scriptId = "gmap-script";
+    if (!document.getElementById(scriptId)) {
+      window.initGoogleMap = () => {
+        setLoaded(true);
+      };
       const script = document.createElement("script");
-      script.id  = "gmap-script";
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=initGoogleMap&loading=async`;
+      script.id = scriptId;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=initGoogleMap`;
       script.async = true;
+      script.defer = true;
       document.head.appendChild(script);
     } else {
-      const check = setInterval(() => {
-        if (window.google?.maps) { clearInterval(check); setLoaded(true); }
+      const interval = setInterval(() => {
+        if (window.google?.maps?.Map) {
+          clearInterval(interval);
+          setLoaded(true);
+        }
       }, 100);
+      return () => clearInterval(interval);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -53,10 +64,11 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
   }, [loaded]);
 
   function initMap() {
-    if (!containerRef.current || mapRef.current) return;
+    if (!containerRef.current || mapRef.current || !window.google?.maps?.Map) return;
+    
     const G = window.google.maps;
-
     const center = { lat: DEFAULT_LAT, lng: DEFAULT_LNG };
+    
     const map = new G.Map(containerRef.current, {
       center,
       zoom: lat && lng ? 16 : 12,
@@ -85,14 +97,18 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
 
     marker.addListener("dragend", () => {
       const pos = marker.getPosition();
-      onChange(+pos.lat().toFixed(6), +pos.lng().toFixed(6));
+      if (pos) {
+        onChange(+pos.lat().toFixed(6), +pos.lng().toFixed(6));
+      }
     });
 
-    map.addListener("click", (e: { latLng: { lat: () => number; lng: () => number } }) => {
-      marker.setPosition(e.latLng);
-      marker.setAnimation(window.google.maps.Animation.BOUNCE);
-      setTimeout(() => marker.setAnimation(null), 400);
-      onChange(+e.latLng.lat().toFixed(6), +e.latLng.lng().toFixed(6));
+    map.addListener("click", (e: any) => {
+      if (e.latLng) {
+        marker.setPosition(e.latLng);
+        marker.setAnimation(G.Animation.BOUNCE);
+        setTimeout(() => marker.setAnimation(null), 400);
+        onChange(+e.latLng.lat().toFixed(6), +e.latLng.lng().toFixed(6));
+      }
     });
 
     mapRef.current    = map;
@@ -107,7 +123,10 @@ export default function MapPicker({ lat, lng, onChange }: Props) {
     mapRef.current.panTo(pos);
   }, [lat, lng]);
 
-  useEffect(() => () => { mapRef.current = null; markerRef.current = null; }, []);
+  useEffect(() => () => { 
+    mapRef.current = null; 
+    markerRef.current = null; 
+  }, []);
 
   return (
     <div className="space-y-2">

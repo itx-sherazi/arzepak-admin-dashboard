@@ -38,6 +38,7 @@ export default function AddProjectPage() {
     latitude: "", longitude: "",
     mapUrl: "",
     nearbyNote: "",
+    contactNumber: "",
   });
 
   /** Nearby tab rows (project detail page → Location & Nearby → Nearby) */
@@ -128,6 +129,7 @@ export default function AddProjectPage() {
         longitude: basic.longitude ? Number(basic.longitude) : undefined,
         mapUrl: basic.mapUrl.trim() || undefined,
         nearbyNote: basic.nearbyNote.trim() || undefined,
+        contactNumber: basic.contactNumber.trim() || undefined,
         nearbyItems: nearbyItems
           .filter((n) => n.label.trim())
           .map((n) => ({
@@ -207,6 +209,10 @@ export default function AddProjectPage() {
               <div className="sm:col-span-2">
                 <label className={lbl}>Google Maps Embed URL / Link (Optional)</label>
                 <input className={inp} value={basic.mapUrl} onChange={e => setB("mapUrl", e.target.value)} placeholder='Paste full <iframe...> code or map URL' />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={lbl}>Contact Number (WhatsApp & Call)</label>
+                <input className={inp} value={basic.contactNumber} onChange={e => setB("contactNumber", e.target.value)} placeholder="+923001234567" />
               </div>
             </div>
 

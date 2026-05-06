@@ -42,6 +42,7 @@ export default function EditProjectPage() {
     latitude: "", longitude: "",
     mapUrl: "",
     nearbyNote: "",
+    contactNumber: "",
   });
 
   const [nearbyItems, setNearbyItems] = useState<{ label: string; mapsUrl: string }[]>([]);
@@ -90,6 +91,7 @@ export default function EditProjectPage() {
           longitude: p.longitude != null ? String(p.longitude) : "",
           mapUrl: String(p.mapUrl ?? ""),
           nearbyNote: String(p.nearbyNote ?? ""),
+          contactNumber: String(p.contactNumber ?? ""),
         });
 
         const rawNearby = Array.isArray(p.nearbyItems) ? p.nearbyItems as Record<string, unknown>[] : [];
@@ -205,6 +207,7 @@ export default function EditProjectPage() {
     longitude: basic.longitude ? Number(basic.longitude) : undefined,
     mapUrl: basic.mapUrl.trim() || null,
     nearbyNote: basic.nearbyNote.trim() || null,
+    contactNumber: basic.contactNumber.trim() || null,
     nearbyItems: nearbyItems
       .filter((n) => n.label.trim())
       .map((n) => ({
@@ -298,6 +301,10 @@ export default function EditProjectPage() {
               <div className="sm:col-span-2">
                 <label className={lbl}>Google Maps Embed URL / Link (Optional)</label>
                 <input className={inp} value={basic.mapUrl} onChange={e => setB("mapUrl", e.target.value)} placeholder='Paste full <iframe...> code or map URL' />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={lbl}>Contact Number (WhatsApp & Call)</label>
+                <input className={inp} value={basic.contactNumber} onChange={e => setB("contactNumber", e.target.value)} placeholder="+923001234567" />
               </div>
             </div>
 
