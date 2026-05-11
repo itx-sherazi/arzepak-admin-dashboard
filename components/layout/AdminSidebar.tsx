@@ -2,13 +2,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { LayoutDashboard, Building2, Home, LogOut, Shield, FolderKanban } from "lucide-react";
+import { LayoutDashboard, Building2, Home, LogOut, Shield, FolderKanban, BookOpen } from "lucide-react";
 
 const links = [
   { href: "/dashboard",          label: "Overview",   icon: LayoutDashboard },
   { href: "/dashboard/dealers",  label: "Dealers",    icon: Building2 },
   { href: "/dashboard/listings", label: "Listings",   icon: Home },
   { href: "/dashboard/projects", label: "Projects",   icon: FolderKanban },
+  { href: "/dashboard/blog",     label: "Blog",       icon: BookOpen },
 ];
 
 export default function AdminSidebar() {
