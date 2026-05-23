@@ -53,6 +53,7 @@ export default function EditProjectPage() {
   const [floorPlans, setFloorPlans] = useState<{ label: string; image: string }[]>([]);
   const [paymentPlans, setPaymentPlans] = useState<{ label: string; image: string }[]>([]);
   const [galleries, setGalleries] = useState<{ title: string; images: string[] }[]>([]);
+  const [renders3d, setRenders3d] = useState<{ title: string; image: string }[]>([]);
   const [amenities, setAmenities] = useState<string[]>([]);
   const [features, setFeatures] = useState({
     mainFeatures: [] as string[], plotFeatures: [] as string[],
@@ -117,6 +118,7 @@ export default function EditProjectPage() {
         setFloorPlans(Array.isArray(p.floorPlans) ? (p.floorPlans as { label: string; image: string }[]) : []);
         setPaymentPlans(Array.isArray(p.paymentPlans) ? (p.paymentPlans as { label: string; image: string }[]) : []);
         setGalleries(Array.isArray(p.galleries) ? (p.galleries as { title: string; images: string[] }[]) : []);
+        setRenders3d(Array.isArray(p.renders3d) ? (p.renders3d as { title: string; image: string }[]) : []);
 
         setAmenities(Array.isArray(p.amenities) ? (p.amenities as string[]) : []);
 
@@ -166,6 +168,19 @@ export default function EditProjectPage() {
       toast.success(`${r.urls.length} image(s) uploaded`);
     } catch { toast.error("Upload failed"); }
     setUploadingSlot(null);
+  };
+
+  const deleteFromCloudinary = async (urls: string | string[]) => {
+    const list = Array.isArray(urls) ? urls : [urls];
+    const valid = list.filter(u => u && u.includes("res.cloudinary.com"));
+    if (!valid.length) return;
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload/bulk`, {
+        method: "DELETE", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urls: valid }),
+      });
+    } catch { /* silent */ }
   };
 
   const addUnit = () => setUnits(u => [...u, { name: "", minPrice: "", maxPrice: "", minArea: "", maxArea: "", areaUnit: "MARLA", bedrooms: "", bathrooms: "" }]);
@@ -225,6 +240,7 @@ export default function EditProjectPage() {
       bathrooms: u.bathrooms ? Number(u.bathrooms) : undefined,
     })),
     logo: logo || null, images, floorPlans, paymentPlans,
+    renders3d: renders3d.filter(r => r.image),
     galleries: galleries.filter(g => g.title.trim()),
     amenities, features,
     updates: updates.map(u => ({ ...u, date: u.date || new Date() })),
@@ -422,7 +438,7 @@ export default function EditProjectPage() {
                       <input type="file" accept="image/*" className="hidden" disabled={uploadBusy}
                         onChange={e => { const f = e.target.files; e.target.value = ""; uploadImages(f, urls => setLogo(urls[0]), { slot: "logo", replaceUrl: logo }); }} />
                     </label>
-                    <button type="button" onClick={() => setLogo("")} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center z-[5]"><X size={10} /></button>
+                    <button type="button" onClick={() => { deleteFromCloudinary(logo); setLogo(""); }} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center z-[5]"><X size={10} /></button>
                   </div>
                 : <label className={`inline-flex items-center gap-2 border-2 border-dashed border-gray-200 rounded-xl p-4 cursor-pointer hover:border-green-400 relative ${uploadBusy ? "opacity-50 pointer-events-none" : ""}`}>
                     {uploadingSlot === "logo" && <Loader2 className="h-5 w-5 animate-spin text-green-600 absolute" />}
@@ -470,7 +486,7 @@ export default function EditProjectPage() {
                               uploadImages(f, urls => setImages(im => im.map((x, idx) => (idx === i ? urls[0] : x))), { slot: `img-${i}`, replaceUrl: img });
                             }} />
                         </label>
-                        <button type="button" onClick={() => setImages(im => im.filter((_, idx) => idx !== i))}
+                        <button type="button" onClick={() => { deleteFromCloudinary(img); setImages(im => im.filter((_, idx) => idx !== i)); }}
                           className="bg-red-500 text-white rounded px-1.5 py-0.5 text-[10px] font-semibold">Remove</button>
                       </div>
                     </div>
@@ -511,7 +527,7 @@ export default function EditProjectPage() {
                           <input type="file" accept="image/*" className="hidden" disabled={uploadBusy}
                             onChange={e => { uploadImages(e.target.files, urls => setFloorPlans(f => f.map((x, idx) => idx === i ? { ...x, image: urls[0] } : x)), { slot: `fp-${i}` }); e.target.value = ""; }} />
                         </label>}
-                    <button type="button" onClick={() => setFloorPlans(f => f.filter((_, idx) => idx !== i))} className="text-red-400"><X size={16} /></button>
+                    <button type="button" onClick={() => { if (fp.image) deleteFromCloudinary(fp.image); setFloorPlans(f => f.filter((_, idx) => idx !== i)); }} className="text-red-400"><X size={16} /></button>
                   </div>
                 ))}
               </div>
@@ -553,7 +569,7 @@ export default function EditProjectPage() {
                           <input type="file" accept="image/*" className="hidden" disabled={uploadBusy}
                             onChange={e => { uploadImages(e.target.files, urls => setPaymentPlans(f => f.map((x, idx) => idx === i ? { ...x, image: urls[0] } : x)), { slot: `pp-${i}` }); e.target.value = ""; }} />
                         </label>}
-                    <button type="button" onClick={() => setPaymentPlans(f => f.filter((_, idx) => idx !== i))} className="text-red-400"><X size={16} /></button>
+                    <button type="button" onClick={() => { if (pp.image) deleteFromCloudinary(pp.image); setPaymentPlans(f => f.filter((_, idx) => idx !== i)); }} className="text-red-400"><X size={16} /></button>
                   </div>
                 ))}
               </div>
@@ -603,7 +619,7 @@ export default function EditProjectPage() {
                             )}
                             <img src={img} alt="" className="w-full h-full object-cover" />
                             <button type="button"
-                              onClick={() => setGalleries(prev => prev.map((x, idx) => idx === gi ? { ...x, images: x.images.filter((_, ii2) => ii2 !== ii) } : x))}
+                              onClick={() => { deleteFromCloudinary(img); setGalleries(prev => prev.map((x, idx) => idx === gi ? { ...x, images: x.images.filter((_, ii2) => ii2 !== ii) } : x)); }}
                               className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 z-10">
                               <X size={10} />
                             </button>
@@ -630,6 +646,78 @@ export default function EditProjectPage() {
                 ))}
               </div>
             </div>
+
+            {/* ── 3D Renders ── */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <div>
+                  <label className={lbl}>3D Renders</label>
+                  <p className="text-xs text-gray-400 -mt-1 mb-3">Upload architectural 3D renders / visualisations of the project</p>
+                </div>
+              </div>
+
+              <div className="relative">
+                {uploadingSlot === "renders3d" && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl bg-white/85 border border-green-100">
+                    <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+                    <span className="mt-2 text-sm font-medium text-gray-600">Uploading renders…</span>
+                  </div>
+                )}
+                <label className={`flex items-center gap-3 border-2 border-dashed border-purple-200 rounded-xl p-4 cursor-pointer hover:border-purple-400 hover:bg-purple-50/30 transition-colors ${uploadBusy ? "pointer-events-none opacity-50" : ""}`}>
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5 text-purple-600">
+                      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                      <path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-700">Upload 3D Renders</div>
+                    <div className="text-xs text-gray-400">Architectural visualisations, exterior &amp; interior renders — PNG, JPG</div>
+                  </div>
+                  <input type="file" multiple accept="image/*" className="hidden" disabled={uploadBusy}
+                    onChange={e => { uploadImages(e.target.files, urls => setRenders3d(r => [...r, ...urls.map(u => ({ title: "", image: u }))]), { slot: "renders3d" }); e.target.value = ""; }} />
+                </label>
+              </div>
+
+              {renders3d.length > 0 && (
+                <div className="space-y-3 mt-3">
+                  {renders3d.map((r3d, i) => (
+                    <div key={i} className="flex items-center gap-3 border border-purple-100 rounded-xl p-2 bg-purple-50/30">
+                      {uploadingSlot === `r3d-${i}` && (
+                        <div className="w-16 h-16 flex items-center justify-center rounded-lg bg-black/20">
+                          <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                        </div>
+                      )}
+                      {(!uploadingSlot || uploadingSlot !== `r3d-${i}`) && (
+                        <img src={r3d.image} alt="" className="w-16 h-16 object-cover rounded-lg flex-shrink-0 border border-purple-200" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <input
+                          type="text"
+                          placeholder="Title e.g. Studio Apartment Type A"
+                          value={r3d.title}
+                          onChange={e => setRenders3d(arr => arr.map((x, idx) => idx === i ? { ...x, title: e.target.value } : x))}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1 flex-shrink-0">
+                        <label className="text-[10px] text-purple-700 font-semibold cursor-pointer px-2 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-center">
+                          Replace
+                          <input type="file" accept="image/*" className="hidden" disabled={uploadBusy}
+                            onChange={e => {
+                              const f = e.target.files; e.target.value = "";
+                              uploadImages(f, urls => setRenders3d(arr => arr.map((x, idx) => idx === i ? { ...x, image: urls[0] } : x)), { slot: `r3d-${i}`, replaceUrl: r3d.image });
+                            }} />
+                        </label>
+                        <button type="button" onClick={() => { deleteFromCloudinary(r3d.image); setRenders3d(arr => arr.filter((_, idx) => idx !== i)); }}
+                          className="bg-red-500 text-white rounded-lg px-2 py-1 text-[10px] font-semibold">Remove</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
         )}
 
