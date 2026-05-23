@@ -51,7 +51,9 @@ export default function AddProjectPage() {
   const [logo, setLogo] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [floorPlans, setFloorPlans] = useState<{ label: string; image: string }[]>([]);
-  const [paymentPlans, setPaymentPlans] = useState<{ label: string; image: string }[]>([]);
+  const [paymentPlans, setPaymentPlans] = useState<{ label: string; images: string[] }[]>([]);
+  const [bookingForm, setBookingForm] = useState<{ label: string; images: string[] }[]>([]);
+  const [catalogue, setCatalogue] = useState<{ label: string; images: string[] }[]>([]);
   const [galleries, setGalleries] = useState<{ title: string; images: string[] }[]>([]);
   const [renders3d, setRenders3d] = useState<{ title: string; image: string }[]>([]);
 
@@ -161,6 +163,8 @@ export default function AddProjectPage() {
           bathrooms: u.bathrooms ? Number(u.bathrooms) : undefined,
         })),
         logo: logo || undefined, images, floorPlans, paymentPlans,
+        bookingForm: bookingForm.filter(b => b.images.length > 0),
+        catalogue: catalogue.filter(c => c.images.length > 0),
         renders3d: renders3d.filter(r => r.image),
         galleries: galleries.filter(g => g.title.trim()),
         amenities, features,
@@ -451,45 +455,184 @@ export default function AddProjectPage() {
 
             {/* Payment Plans */}
             <div>
-              <label className={lbl}>Payment Plans</label>
-              <div className="space-y-2 mb-3">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <label className={lbl}>Payment Plans</label>
+                  <p className="text-xs text-gray-400 -mt-1">Add heading + upload multiple page images per plan</p>
+                </div>
+                <button type="button" onClick={() => setPaymentPlans(f => [...f, { label: "", images: [] }])}
+                  className="flex items-center gap-1.5 text-green-600 text-sm font-semibold hover:underline">
+                  <Plus size={14} /> Add Plan
+                </button>
+              </div>
+              <div className="space-y-4">
                 {paymentPlans.map((pp, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input className={`${inp} flex-1`} placeholder="Label e.g. 3-Year Plan" value={pp.label}
-                      onChange={e => setPaymentPlans(f => f.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))} />
-                    {pp.image
-                      ? <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-gray-200">
-                          {uploadingSlot === `pp-${i}` && (
-                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
-                              <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+                  <div key={i} className="border border-gray-200 rounded-xl p-4 bg-gray-50/50">
+                    {/* Header row */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <input className={`${inp} flex-1`} placeholder="Plan heading e.g. 3-Year Easy Installment Plan"
+                        value={pp.label}
+                        onChange={e => setPaymentPlans(f => f.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))} />
+                      <button type="button"
+                        onClick={() => { deleteFromCloudinary(pp.images); setPaymentPlans(f => f.filter((_, idx) => idx !== i)); }}
+                        className="text-red-400 hover:text-red-600 flex-shrink-0"><X size={18} /></button>
+                    </div>
+
+                    {/* Images grid */}
+                    {pp.images.length > 0 && (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+                        {pp.images.map((img, ii) => (
+                          <div key={ii} className="relative group aspect-[3/4] rounded-lg overflow-hidden border border-gray-200 bg-white">
+                            {uploadingSlot === `pp-${i}-${ii}` && (
+                              <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
+                                <Loader2 className="h-5 w-5 animate-spin text-white" />
+                              </div>
+                            )}
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                            <div className="absolute top-1 left-1 bg-black/50 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                              {ii + 1}
                             </div>
-                          )}
-                          <label className="block h-full w-full cursor-pointer">
-                            <img src={pp.image} alt="" className="w-full h-full object-cover" />
-                            <input type="file" accept="image/*" className="hidden" disabled={uploadBusy}
-                              onChange={e => {
-                                const f = e.target.files;
-                                e.target.value = "";
-                                uploadImages(f, urls => setPaymentPlans(prev => prev.map((x, idx) => idx === i ? { ...x, image: urls[0] } : x)), { slot: `pp-${i}`, replaceUrl: pp.image });
-                              }} />
-                          </label>
-                          <button type="button" onClick={() => setPaymentPlans(f => f.map((x, idx) => idx === i ? { ...x, image: "" } : x))}
-                            className="absolute top-0 right-0 bg-red-500 text-white rounded-bl p-0.5 z-[5]"><X size={10} /></button>
+                            <button type="button"
+                              onClick={() => { deleteFromCloudinary(img); setPaymentPlans(f => f.map((x, idx) => idx === i ? { ...x, images: x.images.filter((_, ii2) => ii2 !== ii) } : x)); }}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              <X size={10} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Upload button */}
+                    <label className={`flex items-center gap-2 border-2 border-dashed border-blue-200 rounded-xl p-3 cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-colors relative ${uploadBusy ? "opacity-50 pointer-events-none" : ""}`}>
+                      {uploadingSlot === `pp-${i}` && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/80 z-10">
+                          <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
                         </div>
-                      : <label className={`w-12 h-12 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center cursor-pointer hover:border-green-400 shrink-0 relative ${uploadBusy ? "opacity-50 pointer-events-none" : ""}`}>
-                          {uploadingSlot === `pp-${i}` && <Loader2 className="h-5 w-5 animate-spin text-green-600 absolute" />}
-                          <Upload size={14} className="text-gray-400" />
-                          <input type="file" accept="image/*" className="hidden" disabled={uploadBusy}
-                            onChange={e => { uploadImages(e.target.files, urls => setPaymentPlans(f => f.map((x, idx) => idx === i ? { ...x, image: urls[0] } : x)), { slot: `pp-${i}` }); e.target.value = ""; }} />
-                        </label>}
-                    <button type="button" onClick={() => { if (pp.image) deleteFromCloudinary(pp.image); setPaymentPlans(f => f.filter((_, idx) => idx !== i)); }} className="text-red-400"><X size={16} /></button>
+                      )}
+                      <Upload size={15} className="text-blue-400" />
+                      <span className="text-sm text-gray-500">Upload page images <span className="text-xs text-gray-400">(multiple allowed)</span></span>
+                      <input type="file" multiple accept="image/*" className="hidden" disabled={uploadBusy}
+                        onChange={e => {
+                          uploadImages(e.target.files, urls => setPaymentPlans(f => f.map((x, idx) => idx === i ? { ...x, images: [...x.images, ...urls] } : x)), { slot: `pp-${i}` });
+                          e.target.value = "";
+                        }} />
+                    </label>
+                    {pp.images.length > 0 && (
+                      <p className="text-[11px] text-gray-400 mt-1.5">{pp.images.length} page{pp.images.length > 1 ? "s" : ""} — drag to reorder not supported, delete and re-upload to change order</p>
+                    )}
                   </div>
                 ))}
               </div>
-              <button type="button" onClick={() => setPaymentPlans(f => [...f, { label: "", image: "" }])}
-                className="flex items-center gap-1.5 text-green-600 text-sm font-semibold hover:underline">
-                <Plus size={14} /> Add Payment Plan
-              </button>
+            </div>
+
+            {/* ── Booking Form ── */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <label className={lbl}>Booking Form</label>
+                  <p className="text-xs text-gray-400 -mt-1">Upload booking form pages as images</p>
+                </div>
+                <button type="button" onClick={() => setBookingForm(f => [...f, { label: "", images: [] }])}
+                  className="flex items-center gap-1.5 text-green-600 text-sm font-semibold hover:underline">
+                  <Plus size={14} /> Add Form
+                </button>
+              </div>
+              <div className="space-y-4">
+                {bookingForm.map((bf, i) => (
+                  <div key={i} className="border border-gray-200 rounded-xl p-4 bg-gray-50/50">
+                    <div className="flex items-center gap-2 mb-3">
+                      <input className={`${inp} flex-1`} placeholder="Label e.g. Standard Booking Form"
+                        value={bf.label}
+                        onChange={e => setBookingForm(f => f.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))} />
+                      <button type="button"
+                        onClick={() => { deleteFromCloudinary(bf.images); setBookingForm(f => f.filter((_, idx) => idx !== i)); }}
+                        className="text-red-400 hover:text-red-600 flex-shrink-0"><X size={18} /></button>
+                    </div>
+                    {bf.images.length > 0 && (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+                        {bf.images.map((img, ii) => (
+                          <div key={ii} className="relative group aspect-[3/4] rounded-lg overflow-hidden border border-gray-200 bg-white">
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                            <div className="absolute top-1 left-1 bg-black/50 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{ii + 1}</div>
+                            <button type="button"
+                              onClick={() => { deleteFromCloudinary(img); setBookingForm(f => f.map((x, idx) => idx === i ? { ...x, images: x.images.filter((_, ii2) => ii2 !== ii) } : x)); }}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              <X size={10} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <label className={`flex items-center gap-2 border-2 border-dashed border-orange-200 rounded-xl p-3 cursor-pointer hover:border-orange-400 hover:bg-orange-50/30 transition-colors relative ${uploadBusy ? "opacity-50 pointer-events-none" : ""}`}>
+                      {uploadingSlot === `bf-${i}` && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/80 z-10">
+                          <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+                        </div>
+                      )}
+                      <Upload size={15} className="text-orange-400" />
+                      <span className="text-sm text-gray-500">Upload pages <span className="text-xs text-gray-400">(multiple allowed)</span></span>
+                      <input type="file" multiple accept="image/*" className="hidden" disabled={uploadBusy}
+                        onChange={e => { uploadImages(e.target.files, urls => setBookingForm(f => f.map((x, idx) => idx === i ? { ...x, images: [...x.images, ...urls] } : x)), { slot: `bf-${i}` }); e.target.value = ""; }} />
+                    </label>
+                    {bf.images.length > 0 && <p className="text-[11px] text-gray-400 mt-1.5">{bf.images.length} page{bf.images.length > 1 ? "s" : ""} uploaded</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Catalogue ── */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <label className={lbl}>Catalogue</label>
+                  <p className="text-xs text-gray-400 -mt-1">Upload catalogue pages as images</p>
+                </div>
+                <button type="button" onClick={() => setCatalogue(f => [...f, { label: "", images: [] }])}
+                  className="flex items-center gap-1.5 text-green-600 text-sm font-semibold hover:underline">
+                  <Plus size={14} /> Add Catalogue
+                </button>
+              </div>
+              <div className="space-y-4">
+                {catalogue.map((cat, i) => (
+                  <div key={i} className="border border-gray-200 rounded-xl p-4 bg-gray-50/50">
+                    <div className="flex items-center gap-2 mb-3">
+                      <input className={`${inp} flex-1`} placeholder="Label e.g. Project Catalogue 2025"
+                        value={cat.label}
+                        onChange={e => setCatalogue(f => f.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))} />
+                      <button type="button"
+                        onClick={() => { deleteFromCloudinary(cat.images); setCatalogue(f => f.filter((_, idx) => idx !== i)); }}
+                        className="text-red-400 hover:text-red-600 flex-shrink-0"><X size={18} /></button>
+                    </div>
+                    {cat.images.length > 0 && (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+                        {cat.images.map((img, ii) => (
+                          <div key={ii} className="relative group aspect-[3/4] rounded-lg overflow-hidden border border-gray-200 bg-white">
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                            <div className="absolute top-1 left-1 bg-black/50 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{ii + 1}</div>
+                            <button type="button"
+                              onClick={() => { deleteFromCloudinary(img); setCatalogue(f => f.map((x, idx) => idx === i ? { ...x, images: x.images.filter((_, ii2) => ii2 !== ii) } : x)); }}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              <X size={10} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <label className={`flex items-center gap-2 border-2 border-dashed border-teal-200 rounded-xl p-3 cursor-pointer hover:border-teal-400 hover:bg-teal-50/30 transition-colors relative ${uploadBusy ? "opacity-50 pointer-events-none" : ""}`}>
+                      {uploadingSlot === `cat-${i}` && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/80 z-10">
+                          <Loader2 className="h-5 w-5 animate-spin text-teal-500" />
+                        </div>
+                      )}
+                      <Upload size={15} className="text-teal-400" />
+                      <span className="text-sm text-gray-500">Upload pages <span className="text-xs text-gray-400">(multiple allowed)</span></span>
+                      <input type="file" multiple accept="image/*" className="hidden" disabled={uploadBusy}
+                        onChange={e => { uploadImages(e.target.files, urls => setCatalogue(f => f.map((x, idx) => idx === i ? { ...x, images: [...x.images, ...urls] } : x)), { slot: `cat-${i}` }); e.target.value = ""; }} />
+                    </label>
+                    {cat.images.length > 0 && <p className="text-[11px] text-gray-400 mt-1.5">{cat.images.length} page{cat.images.length > 1 ? "s" : ""} uploaded</p>}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* ── Galleries ── */}
